@@ -6,14 +6,18 @@ labels, scores, emotions, and properly structured responses.
 """
 
 import json
-import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import GEval
-from deepeval.dataset import EvaluationDataset
 
 from api_client import analyze_sentiment
-from conftest import json_schema_metric, output_correctness_metric, answer_relevancy_metric
+from conftest import (
+    answer_relevancy_metric,
+    json_schema_metric,
+    lazy_evaluation_dataset,
+    output_correctness_metric,
+    parametrize_test_cases,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -98,10 +102,11 @@ def build_sentiment_test_cases():
     return test_cases
 
 
-sentiment_test_cases = build_sentiment_test_cases()
-sentiment_dataset = EvaluationDataset()
-for tc in sentiment_test_cases:
-    sentiment_dataset.add_test_case(tc)
+get_sentiment_dataset = lazy_evaluation_dataset(build_sentiment_test_cases)
+
+
+def pytest_generate_tests(metafunc):
+    parametrize_test_cases(metafunc, get_sentiment_dataset)
 
 
 # ---------------------------------------------------------------------------
@@ -156,25 +161,21 @@ sentiment_relevancy_metric = answer_relevancy_metric()
 # Tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("test_case", sentiment_dataset.test_cases)
 def test_sentiment_schema_compliance(test_case: LLMTestCase):
     """Verify the sentiment response has the correct JSON structure."""
     assert_test(test_case, [sentiment_schema_metric])
 
 
-@pytest.mark.parametrize("test_case", sentiment_dataset.test_cases)
 def test_sentiment_correctness(test_case: LLMTestCase):
     """Verify the sentiment label and score are accurate."""
     assert_test(test_case, [sentiment_correctness_metric])
 
 
-@pytest.mark.parametrize("test_case", sentiment_dataset.test_cases)
 def test_sentiment_emotion_detection(test_case: LLMTestCase):
     """Verify the detected emotions are plausible for the input."""
     assert_test(test_case, [sentiment_emotion_metric])
 
 
-@pytest.mark.parametrize("test_case", sentiment_dataset.test_cases)
 def test_sentiment_relevancy(test_case: LLMTestCase):
     """Verify the sentiment response is relevant to the input."""
     assert_test(test_case, [sentiment_relevancy_metric])

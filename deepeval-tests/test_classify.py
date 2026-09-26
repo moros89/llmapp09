@@ -6,14 +6,18 @@ and properly structured responses for various input texts.
 """
 
 import json
-import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import GEval
-from deepeval.dataset import EvaluationDataset
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from api_client import classify_text
-from conftest import json_schema_metric, output_correctness_metric, answer_relevancy_metric
+from conftest import (
+    answer_relevancy_metric,
+    json_schema_metric,
+    lazy_evaluation_dataset,
+    parametrize_test_cases,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -92,10 +96,11 @@ def build_classify_test_cases():
     return test_cases
 
 
-classify_test_cases = build_classify_test_cases()
-classify_dataset = EvaluationDataset()
-for tc in classify_test_cases:
-    classify_dataset.add_test_case(tc)
+get_classify_dataset = lazy_evaluation_dataset(build_classify_test_cases)
+
+
+def pytest_generate_tests(metafunc):
+    parametrize_test_cases(metafunc, get_classify_dataset)
 
 
 # ---------------------------------------------------------------------------
@@ -135,19 +140,16 @@ classify_relevancy_metric = answer_relevancy_metric()
 # Tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("test_case", classify_dataset.test_cases)
 def test_classify_schema_compliance(test_case: LLMTestCase):
     """Verify the classification response has the correct JSON structure."""
     assert_test(test_case, [classify_schema_metric])
 
 
-@pytest.mark.parametrize("test_case", classify_dataset.test_cases)
 def test_classify_correctness(test_case: LLMTestCase):
     """Verify the classification labels and category are accurate."""
     assert_test(test_case, [classify_correctness_metric])
 
 
-@pytest.mark.parametrize("test_case", classify_dataset.test_cases)
 def test_classify_relevancy(test_case: LLMTestCase):
     """Verify the classification response is relevant to the input."""
     assert_test(test_case, [classify_relevancy_metric])

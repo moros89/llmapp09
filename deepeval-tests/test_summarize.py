@@ -6,14 +6,17 @@ summaries with relevant key points.
 """
 
 import json
-import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import GEval
-from deepeval.dataset import EvaluationDataset
 
 from api_client import summarize_text
-from conftest import json_schema_metric, output_correctness_metric, answer_relevancy_metric
+from conftest import (
+    answer_relevancy_metric,
+    json_schema_metric,
+    lazy_evaluation_dataset,
+    parametrize_test_cases,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -139,10 +142,11 @@ def build_summarize_test_cases():
     return test_cases
 
 
-summarize_test_cases = build_summarize_test_cases()
-summarize_dataset = EvaluationDataset()
-for tc in summarize_test_cases:
-    summarize_dataset.add_test_case(tc)
+get_summarize_dataset = lazy_evaluation_dataset(build_summarize_test_cases)
+
+
+def pytest_generate_tests(metafunc):
+    parametrize_test_cases(metafunc, get_summarize_dataset)
 
 
 # ---------------------------------------------------------------------------
@@ -210,31 +214,26 @@ summarize_relevancy_metric = answer_relevancy_metric()
 # Tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("test_case", summarize_dataset.test_cases)
 def test_summarize_schema_compliance(test_case: LLMTestCase):
     """Verify the summary response has the correct JSON structure."""
     assert_test(test_case, [summarize_schema_metric])
 
 
-@pytest.mark.parametrize("test_case", summarize_dataset.test_cases)
 def test_summarize_correctness(test_case: LLMTestCase):
     """Verify the summary captures the main ideas accurately."""
     assert_test(test_case, [summarize_correctness_metric])
 
 
-@pytest.mark.parametrize("test_case", summarize_dataset.test_cases)
 def test_summarize_conciseness(test_case: LLMTestCase):
     """Verify the summary is concise relative to the input."""
     assert_test(test_case, [summarize_conciseness_metric])
 
 
-@pytest.mark.parametrize("test_case", summarize_dataset.test_cases)
 def test_summarize_faithfulness(test_case: LLMTestCase):
     """Verify the summary does not hallucinate facts not in the input."""
     assert_test(test_case, [summarize_faithfulness_metric])
 
 
-@pytest.mark.parametrize("test_case", summarize_dataset.test_cases)
 def test_summarize_relevancy(test_case: LLMTestCase):
     """Verify the summary response is relevant to the input."""
     assert_test(test_case, [summarize_relevancy_metric])

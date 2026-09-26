@@ -2,9 +2,39 @@
 Shared fixtures and configuration for deepeval LLM evaluation tests.
 """
 
+from typing import Callable, List
+
 import pytest
+from deepeval.dataset import EvaluationDataset
 from deepeval.metrics import GEval
-from deepeval.test_case import LLMTestCaseParams
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+
+
+def lazy_evaluation_dataset(
+    build_fn: Callable[[], List[LLMTestCase]],
+) -> Callable[[], EvaluationDataset]:
+    """Build the dataset on first use (after the backend is up in CI)."""
+    cache: dict[str, EvaluationDataset] = {}
+
+    def get_dataset() -> EvaluationDataset:
+        if "dataset" not in cache:
+            dataset = EvaluationDataset()
+            for test_case in build_fn():
+                dataset.add_test_case(test_case)
+            cache["dataset"] = dataset
+        return cache["dataset"]
+
+    return get_dataset
+
+
+def parametrize_test_cases(metafunc: pytest.Metafunc, get_dataset: Callable[[], EvaluationDataset]) -> None:
+    if "test_case" in metafunc.fixturenames:
+        cases = list(get_dataset().test_cases)
+        metafunc.parametrize(
+            "test_case",
+            cases,
+            ids=[f"case{i}" for i in range(len(cases))],
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -39,19 +39,42 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r deepeval-tests/requirements.txt
 
+      - name: Verify CI secrets
+        run: |
+          missing=0
+          for name in OLLAMA_API_KEY OLLAMA_BASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required secret or env: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Configure DeepEval judge
+        working-directory: deepeval-tests
+        run: |
+          deepeval set-ollama \
+            --model=deepseek-v4.1-flash \
+            --base-url="${OLLAMA_BASE_URL:-https://ollama.com}" \
+            --save=dotenv
+
       - name: Build and start backend
         run: docker compose up -d llm-multiroute
 
       - name: Wait for backend to be ready
         run: |
           echo "Waiting for backend to be ready..."
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:8080/api/ai/routes > /dev/null 2>&1; then
-              echo "Backend is ready."
-              exit 0
+          for i in $(seq 1 36); do
+            if curl -sf http://localhost:8080/api/ai/routes > /dev/null; then
+              if curl -sf -X POST http://localhost:8080/api/ai/classify \
+                -H 'Content-Type: application/json' \
+                -d '{"text":"health check"}' > /dev/null; then
+                echo "Backend and classify endpoint are ready."
+                exit 0
+              fi
             fi
-            echo "Attempt $i/30 - backend not ready yet..."
-            sleep 5
+            echo "Attempt $i/36 - backend not ready yet..."
+            sleep 10
           done
           echo "Backend failed to start."
           docker compose logs llm-multiroute

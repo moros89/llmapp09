@@ -6,14 +6,17 @@ the purpose and category behind different types of text input.
 """
 
 import json
-import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import GEval
-from deepeval.dataset import EvaluationDataset
 
 from api_client import detect_intent
-from conftest import json_schema_metric, output_correctness_metric, answer_relevancy_metric
+from conftest import (
+    answer_relevancy_metric,
+    json_schema_metric,
+    lazy_evaluation_dataset,
+    parametrize_test_cases,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -102,10 +105,11 @@ def build_intent_test_cases():
     return test_cases
 
 
-intent_test_cases = build_intent_test_cases()
-intent_dataset = EvaluationDataset()
-for tc in intent_test_cases:
-    intent_dataset.add_test_case(tc)
+get_intent_dataset = lazy_evaluation_dataset(build_intent_test_cases)
+
+
+def pytest_generate_tests(metafunc):
+    parametrize_test_cases(metafunc, get_intent_dataset)
 
 
 # ---------------------------------------------------------------------------
@@ -160,25 +164,21 @@ intent_relevancy_metric = answer_relevancy_metric()
 # Tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("test_case", intent_dataset.test_cases)
 def test_intent_schema_compliance(test_case: LLMTestCase):
     """Verify the intent response has the correct JSON structure."""
     assert_test(test_case, [intent_schema_metric])
 
 
-@pytest.mark.parametrize("test_case", intent_dataset.test_cases)
 def test_intent_category_accuracy(test_case: LLMTestCase):
     """Verify the intent category (question/command/request/statement) is correct."""
     assert_test(test_case, [intent_category_metric])
 
 
-@pytest.mark.parametrize("test_case", intent_dataset.test_cases)
 def test_intent_primary_accuracy(test_case: LLMTestCase):
     """Verify the primary intent description is accurate."""
     assert_test(test_case, [intent_primary_metric])
 
 
-@pytest.mark.parametrize("test_case", intent_dataset.test_cases)
 def test_intent_relevancy(test_case: LLMTestCase):
     """Verify the intent response is relevant to the input."""
     assert_test(test_case, [intent_relevancy_metric])
