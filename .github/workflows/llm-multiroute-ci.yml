@@ -98,17 +98,15 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.28.0
-        env:
-          TRIVY_DISABLE_VEX_NOTICE: "true"
-        with:
-          scan-type: image
-          image-ref: moros89/llm-multiroute:scan
-          format: table
-          exit-code: '1'
-          severity: CRITICAL,HIGH
-          # Path inside the action container (repo is mounted at /github/workspace)
-          trivyignores: /github/workspace/.trivyignore
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$GITHUB_WORKSPACE/.trivyignore:/tmp/.trivyignore:ro" \
+            aquasec/trivy:0.58.1 image \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --ignorefile /tmp/.trivyignore \
+            moros89/llm-multiroute:scan
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
