@@ -80,21 +80,16 @@ jobs:
           docker compose logs llm-multiroute
           exit 1
 
-      - name: Run DeepEval classify tests
+      - name: Run all DeepEval tests
         working-directory: deepeval-tests
-        run: deepeval test run test_classify.py -v
-
-      - name: Run DeepEval sentiment tests
-        working-directory: deepeval-tests
-        run: deepeval test run test_sentiment.py -v
-
-      - name: Run DeepEval summarize tests
-        working-directory: deepeval-tests
-        run: deepeval test run test_summarize.py -v
-
-      - name: Run DeepEval intent tests
-        working-directory: deepeval-tests
-        run: deepeval test run test_intent.py -v
+        run: |
+          rm -rf .deepeval
+          deepeval test run \
+            test_classify.py \
+            test_sentiment.py \
+            test_summarize.py \
+            test_intent.py \
+            -v
 
       - name: Tear down backend
         if: always()

@@ -8,12 +8,11 @@ and properly structured responses for various input texts.
 import json
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
-from deepeval.metrics import GEval
-from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from api_client import classify_text
 from conftest import (
     answer_relevancy_metric,
+    geval_metric,
     json_schema_metric,
     lazy_evaluation_dataset,
     parametrize_test_cases,
@@ -114,7 +113,7 @@ SCHEMA_DESC = (
 
 classify_schema_metric = json_schema_metric(SCHEMA_DESC)
 
-classify_correctness_metric = GEval(
+classify_correctness_metric = geval_metric(
     name="Classification Correctness",
     criteria=(
         "Evaluate whether the classification labels and primary category in the "

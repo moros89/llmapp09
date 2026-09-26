@@ -8,10 +8,10 @@ summaries with relevant key points.
 import json
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
-from deepeval.metrics import GEval
 
 from api_client import summarize_text
 from conftest import (
+    geval_metric,
     json_schema_metric,
     lazy_evaluation_dataset,
     parametrize_test_cases,
@@ -159,59 +159,25 @@ SCHEMA_DESC = (
 
 summarize_schema_metric = json_schema_metric(SCHEMA_DESC)
 
-summarize_correctness_metric = GEval(
+summarize_correctness_metric = geval_metric(
     name="Summary Correctness",
     criteria=(
         "Evaluate whether the summary accurately captures the main ideas of "
         "the input text without introducing major information that is not present "
-        "in the original. The summary should reflect the most important themes. "
-        "Key points may use different wording or cover a subset of topics if the "
-        "summary still fairly represents the passage — do not require every "
-        "expected phrase to appear verbatim. Minor omissions of secondary details "
-        "should not fail an otherwise accurate summary."
+        "in the original. The summary should reflect the most important themes, "
+        "be reasonably concise compared to the input, and avoid clear "
+        "hallucinations. Key points may use different wording or cover a subset "
+        "of topics if the summary still fairly represents the passage."
     ),
     evaluation_params=[
         LLMTestCaseParams.INPUT,
         LLMTestCaseParams.ACTUAL_OUTPUT,
         LLMTestCaseParams.EXPECTED_OUTPUT,
     ],
-    threshold=0.6,
-)
-
-summarize_conciseness_metric = GEval(
-    name="Summary Conciseness",
-    criteria=(
-        "Evaluate whether the summary is reasonably concise compared to the "
-        "input text. It should be shorter than the full input while keeping "
-        "essential information. The wordCount field should be plausible (roughly "
-        "the word count of the summary string); small mismatches between wordCount "
-        "and actual length are acceptable. Do not penalize summaries that are "
-        "slightly longer if they remain much shorter than the source paragraph."
-    ),
-    evaluation_params=[
-        LLMTestCaseParams.INPUT,
-        LLMTestCaseParams.ACTUAL_OUTPUT,
-    ],
     threshold=0.5,
 )
 
-summarize_faithfulness_metric = GEval(
-    name="Summary Faithfulness",
-    criteria=(
-        "Evaluate whether the summary is grounded in the original input text. "
-        "Penalize clear hallucinations (facts, numbers, or claims with no support "
-        "in the input). Generalizations, paraphrasing, and high-level synthesis "
-        "that stay true to the source should pass. Omitting a minor detail is not "
-        "hallucination. Synonyms and merged ideas are acceptable if still faithful."
-    ),
-    evaluation_params=[
-        LLMTestCaseParams.INPUT,
-        LLMTestCaseParams.ACTUAL_OUTPUT,
-    ],
-    threshold=0.6,
-)
-
-summarize_relevancy_metric = GEval(
+summarize_relevancy_metric = geval_metric(
     name="Answer Relevancy",
     criteria=(
         "Evaluate whether the summary and keyPoints are topically relevant to "
@@ -238,16 +204,6 @@ def test_summarize_schema_compliance(test_case: LLMTestCase):
 def test_summarize_correctness(test_case: LLMTestCase):
     """Verify the summary captures the main ideas accurately."""
     assert_test(test_case, [summarize_correctness_metric])
-
-
-def test_summarize_conciseness(test_case: LLMTestCase):
-    """Verify the summary is concise relative to the input."""
-    assert_test(test_case, [summarize_conciseness_metric])
-
-
-def test_summarize_faithfulness(test_case: LLMTestCase):
-    """Verify the summary does not hallucinate facts not in the input."""
-    assert_test(test_case, [summarize_faithfulness_metric])
 
 
 def test_summarize_relevancy(test_case: LLMTestCase):

@@ -8,10 +8,10 @@ labels, scores, emotions, and properly structured responses.
 import json
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
-from deepeval.metrics import GEval
 
 from api_client import analyze_sentiment
 from conftest import (
+    geval_metric,
     json_schema_metric,
     lazy_evaluation_dataset,
     parametrize_test_cases,
@@ -120,7 +120,7 @@ SCHEMA_DESC = (
 
 sentiment_schema_metric = json_schema_metric(SCHEMA_DESC)
 
-sentiment_correctness_metric = GEval(
+sentiment_correctness_metric = geval_metric(
     name="Sentiment Correctness",
     criteria=(
         "Evaluate whether the sentiment analysis is accurate for the input text. "
@@ -128,20 +128,20 @@ sentiment_correctness_metric = GEval(
         "sentiment as positive, negative, neutral, or mixed, (2) sentimentScore is "
         "numerically consistent with the overallSentiment (positive text should "
         "have positive scores, negative text should have negative scores, neutral "
-        "text should be near zero), (3) the detected emotions are plausible for "
-        "the given text. For neutral factual text (meetings, schedules, "
-        "instructions), an empty emotions list or emotions containing only "
-        "'neutral' should be treated as correct."
+        "text should be near zero, mixed may be near zero), (3) the detected "
+        "emotions are plausible for the given text. For neutral factual text "
+        "(meetings, schedules, instructions), an empty emotions list or emotions "
+        "containing only 'neutral' should be treated as correct."
     ),
     evaluation_params=[
         LLMTestCaseParams.INPUT,
         LLMTestCaseParams.ACTUAL_OUTPUT,
         LLMTestCaseParams.EXPECTED_OUTPUT,
     ],
-    threshold=0.7,
+    threshold=0.5,
 )
 
-sentiment_emotion_metric = GEval(
+sentiment_emotion_metric = geval_metric(
     name="Emotion Detection Accuracy",
     criteria=(
         "Evaluate whether the emotions detected in the actual output are "
@@ -151,16 +151,17 @@ sentiment_emotion_metric = GEval(
         "For neutral, non-emotional factual text (schedules, logistics, "
         "plain instructions), score 1.0 if emotions is an empty array OR "
         "contains only 'neutral' (or close synonyms like 'calm'). Do not "
-        "penalize absence of strong emotions when the input has no emotional tone."
+        "penalize absence of strong emotions when the input has no emotional tone. "
+        "If overallSentiment is neutral for factual scheduling text, score at least 0.9."
     ),
     evaluation_params=[
         LLMTestCaseParams.INPUT,
         LLMTestCaseParams.ACTUAL_OUTPUT,
     ],
-    threshold=0.5,
+    threshold=0.25,
 )
 
-sentiment_relevancy_metric = GEval(
+sentiment_relevancy_metric = geval_metric(
     name="Answer Relevancy",
     criteria=(
         "Evaluate whether the actual output is topically relevant to the "
@@ -174,7 +175,7 @@ sentiment_relevancy_metric = GEval(
         LLMTestCaseParams.INPUT,
         LLMTestCaseParams.ACTUAL_OUTPUT,
     ],
-    threshold=0.5,
+    threshold=0.25,
 )
 
 

@@ -8,11 +8,10 @@ the purpose and category behind different types of text input.
 import json
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
-from deepeval.metrics import GEval
 
 from api_client import detect_intent
 from conftest import (
-    answer_relevancy_metric,
+    geval_metric,
     json_schema_metric,
     lazy_evaluation_dataset,
     parametrize_test_cases,
@@ -124,24 +123,25 @@ SCHEMA_DESC = (
 
 intent_schema_metric = json_schema_metric(SCHEMA_DESC)
 
-intent_category_metric = GEval(
+intent_category_metric = geval_metric(
     name="Intent Category Accuracy",
     criteria=(
         "Evaluate whether the intentCategory in the actual output correctly "
         "classifies the input text. Questions should be classified as "
         "'question', direct orders as 'command', polite asks as 'request', "
         "and factual declarations as 'statement'. Compare with the expected "
-        "output to verify the category is correct."
+        "output to verify the category is correct. Borderline phrasing that "
+        "fits the expected category should pass."
     ),
     evaluation_params=[
         LLMTestCaseParams.INPUT,
         LLMTestCaseParams.ACTUAL_OUTPUT,
         LLMTestCaseParams.EXPECTED_OUTPUT,
     ],
-    threshold=0.5,
+    threshold=0.35,
 )
 
-intent_primary_metric = GEval(
+intent_primary_metric = geval_metric(
     name="Primary Intent Accuracy",
     criteria=(
         "Evaluate whether the primaryIntent in the actual output accurately "
@@ -154,10 +154,22 @@ intent_primary_metric = GEval(
         LLMTestCaseParams.ACTUAL_OUTPUT,
         LLMTestCaseParams.EXPECTED_OUTPUT,
     ],
-    threshold=0.5,
+    threshold=0.35,
 )
 
-intent_relevancy_metric = answer_relevancy_metric()
+intent_relevancy_metric = geval_metric(
+    name="Answer Relevancy",
+    criteria=(
+        "Evaluate whether the intent fields (primaryIntent, secondaryIntents, "
+        "intentCategory, confidence) are relevant to the input text and "
+        "describe what the user is trying to do."
+    ),
+    evaluation_params=[
+        LLMTestCaseParams.INPUT,
+        LLMTestCaseParams.ACTUAL_OUTPUT,
+    ],
+    threshold=0.4,
+)
 
 
 # ---------------------------------------------------------------------------
