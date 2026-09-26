@@ -1,6 +1,7 @@
 import requests
-from config import BACKEND_URL, DEBUG, FLASK_PORT
 from flask import Flask, jsonify, render_template, request
+
+from config import BACKEND_URL, DEBUG, FLASK_PORT
 
 app = Flask(__name__)
 

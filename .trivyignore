@@ -26,3 +26,4 @@ CVE-2026-78409
 CVE-2026-78410
 # systemd (Debian base, no fix yet on python:3.12-slim)
 CVE-2026-16742
+# CI re-run trigger (secrets / lint)
