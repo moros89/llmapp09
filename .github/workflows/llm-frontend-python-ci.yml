@@ -6,21 +6,22 @@ on:
     paths:
       - 'llm-frontend-python/**'
       - '.github/workflows/llm-frontend-python-ci.yml'
+      - '.trivyignore'
   pull_request:
     branches: [main, master]
     paths:
       - 'llm-frontend-python/**'
       - '.github/workflows/llm-frontend-python-ci.yml'
+      - '.trivyignore'
   workflow_dispatch:
-
-defaults:
-  run:
-    working-directory: llm-frontend-python
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: llm-frontend-python
     steps:
       - uses: actions/checkout@v4
 
@@ -72,15 +73,16 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
         with:
+          scan-type: image
           image-ref: moros89/llm-frontend-python:scan
-          format: 'table'
+          format: table
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'
-          trivyignores: ${{ github.workspace }}/.trivyignore
+          severity: CRITICAL,HIGH
+          trivyignores: /github/workspace/.trivyignore
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
