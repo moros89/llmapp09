@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.python-version
+
+# Secrets
+.env
+.env.local
+*.pem
+
+# Local metrics (regenerated at runtime)
+llm-multiroute/metrics/*.json
+
+# Node
+node_modules/
+
+# DeepEval local cache
+deepeval-tests/.deepeval/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
